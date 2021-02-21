@@ -6,8 +6,10 @@ const useFetch = (url) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        const abortController = new AbortController();
+
         setTimeout(() => {
-            fetch(url)
+            fetch(url, { signal: abortController.signal })
                 .then(response => {
                     if (!response.ok) throw Error("Couldn't fetch the data for that resource");
                     return response.json();
@@ -18,10 +20,16 @@ const useFetch = (url) => {
                     setError(null);
                 })
                 .catch(err => {
-                    setError(err.message);
-                    setIsPending(false);
+                    if (err.name === "AbortError") {
+                        console.log("Fetch aborted");
+                    } else {
+                        setError(err.message);
+                        setIsPending(false);
+                    }
                 });
         }, 1000);
+
+        return () => abortController.abort();
     }, [url]);
 
     return { data, isPending, error };
